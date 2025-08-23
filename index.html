@@ -3,8 +3,7 @@
   
   Esta versión incluye:
   - Efectos de sonido para disparos e impactos.
-  - Lógica para detectar una doble pulsación en dispositivos móviles (Android, etc.)
-    y disparar.
+  - Lógica para detectar un solo toque o clic de ratón para disparar.
   - El mismo código funciona para clics de ratón y gatillos de VR.
   - Un entorno más atractivo, contador de puntuación y un rayo para simular el disparo.
 -->
@@ -200,29 +199,13 @@
         });
 
         // Componente 'shooter-controller':
-        // Maneja la lógica de disparo (clic de ratón, gatillo de VR o doble pulsación en móvil).
+        // Maneja la lógica de disparo (clic de ratón, gatillo de VR o un solo toque en móvil).
         AFRAME.registerComponent('shooter-controller', {
-            schema: {
-                doubleTapTime: {type: 'number', default: 300} // Milisegundos para considerar un doble toque.
-            },
             init: function() {
-                this.lastTap = 0;
-                this.el.sceneEl.addEventListener('touchstart', this.handleTap.bind(this));
-                this.el.sceneEl.addEventListener('mousedown', this.handleTap.bind(this));
-            },
-            
-            handleTap: function(evt) {
-                const currentTime = Date.now();
-                const tapDifference = currentTime - this.lastTap;
-
-                if (tapDifference < this.data.doubleTapTime) {
-                    // Doble pulsación detectada en móvil o doble clic en ratón.
-                    this.fireShot(evt);
-                    this.lastTap = 0; // Reiniciamos el tiempo para evitar triples toques.
-                } else {
-                    // Primer toque.
-                    this.lastTap = currentTime;
-                }
+                // Escucha el evento 'mousedown' para el clic del ratón o el gatillo del controlador VR.
+                this.el.sceneEl.addEventListener('mousedown', this.fireShot.bind(this));
+                // Escucha el evento 'touchstart' para un solo toque en dispositivos móviles.
+                this.el.sceneEl.addEventListener('touchstart', this.fireShot.bind(this));
             },
 
             // Dispara y verifica si se ha golpeado una diana.
@@ -231,6 +214,7 @@
                 this.el.sceneEl.querySelector('[camera]').components.sound.playSound();
 
                 const raycaster = this.el.components.raycaster;
+                // Si la colisión no existe, el rayo no ha impactado nada.
                 if (!raycaster || !raycaster.intersection) {
                     return; // No hay colisión, no hacemos nada.
                 }
