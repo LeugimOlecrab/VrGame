@@ -175,6 +175,9 @@
                 this.targets.forEach(target => {
                     const pos = target.getAttribute('position');
                     if (pos.z > 2) {
+                        // Reproduce el sonido de caída.
+                        this.el.sceneEl.querySelector('#fall-sound-player').components.sound.playSound();
+
                         this.missedCount++;
                         this.updateMissedCounter();
                         target.parentNode.removeChild(target);
@@ -222,6 +225,7 @@
 
         // Componente 'target-movement':
         // Mueve la diana en una trayectoria parabólica.
+        // Se ha ajustado la parábola para que sea más alta y las dianas caigan más cerca del jugador.
         AFRAME.registerComponent('target-movement', {
             schema: {
                 speed: {type: 'number', default: 1}
@@ -234,8 +238,10 @@
                 this.elapsedTime += deltaTime / 1000;
                 const newPos = {
                     x: this.initialPos.x,
-                    y: this.initialPos.y + (this.elapsedTime * this.data.speed * 0.5) - (0.5 * 0.98 * this.elapsedTime * this.elapsedTime),
-                    z: this.initialPos.z + (this.elapsedTime * this.data.speed * 2)
+                    // Se ha aumentado el impulso inicial en el eje Y para una parábola más alta.
+                    y: this.initialPos.y + (this.elapsedTime * this.data.speed * 2.0) - (0.5 * 0.98 * this.elapsedTime * this.elapsedTime),
+                    // Se ha reducido la velocidad en el eje Z para que caigan más cerca.
+                    z: this.initialPos.z + (this.elapsedTime * this.data.speed * 1.5)
                 };
                 this.el.setAttribute('position', newPos);
             }
@@ -248,7 +254,11 @@
         <a-assets>
             <audio id="shot-sound" src="https://cdn.jsdelivr.net/gh/aframevr/aframe/examples/showcase/audio/gun.mp3"></audio>
             <audio id="hit-sound" src="https://cdn.jsdelivr.net/gh/aframevr/aframe/examples/showcase/audio/click.mp3"></audio>
+            <audio id="fall-sound" src="https://cdn.jsdelivr.net/gh/aframevr/aframe/examples/showcase/audio/boing.mp3"></audio>
         </a-assets>
+
+        <!-- Se ha añadido una entidad invisible para el sonido de caída. -->
+        <a-entity id="fall-sound-player" sound="src: #fall-sound; volume: 0.8;"></a-entity>
 
         <!-- Cámara del jugador. -->
         <a-entity id="rig" movement-controls position="0 1.6 0">
