@@ -40,13 +40,34 @@
                 this.createMissedCounter();
                 this.createStartButton();
                 
-                // Escuchamos el evento de clic en la escena para reproducir el sonido de disparo.
-                this.el.sceneEl.addEventListener('click', this.playShotSound.bind(this));
+                // Escuchamos el evento de clic en la escena para reproducir el sonido de disparo
+                // y detectar si se ha impactado una diana.
+                this.el.sceneEl.addEventListener('click', this.handleInteraction.bind(this));
             },
 
-            // Reproduce el sonido de disparo.
-            playShotSound: function() {
+            // Maneja todos los clics y toques en la escena.
+            handleInteraction: function(evt) {
+                // Reproduce el sonido de disparo en cada clic o toque.
                 this.el.sceneEl.querySelector('#shot-sound-player').components.sound.playSound();
+
+                // Si el juego ha terminado, no hacemos nada con las dianas.
+                if (this.isGameOver) {
+                    return;
+                }
+                
+                // Si hay una intersección, significa que el rayo ha impactado un objeto.
+                if (evt.detail.intersection) {
+                    const intersectedEl = evt.detail.intersection.object.el;
+
+                    // Si el objeto es el botón de inicio, empezamos el juego.
+                    if (intersectedEl.id === 'startButton') {
+                        this.startGame();
+                    } 
+                    // Si el objeto es una diana, gestionamos el impacto.
+                    else if (intersectedEl.getAttribute('class') && intersectedEl.getAttribute('class').includes('target')) {
+                        this.onTargetHit(intersectedEl);
+                    }
+                }
             },
 
             // Crea el botón para empezar el juego.
@@ -63,12 +84,6 @@
                     width: 3
                 });
                 button.setAttribute('class', 'clickable'); // Añadimos una clase para el raycaster.
-                
-                // Añadimos el oyente de evento de clic directamente al botón para mayor fiabilidad.
-                button.addEventListener('click', () => {
-                    this.startGame();
-                });
-
                 this.el.sceneEl.appendChild(button);
             },
 
@@ -102,11 +117,6 @@
                 target.setAttribute('target-movement', 'speed: ' + this.data.targetSpeed);
                 // El sonido de impacto se emite con un evento.
                 target.setAttribute('sound', 'src: #hit-sound; on: target-hit;');
-
-                // Añadimos un oyente de evento de clic directamente a la diana.
-                target.addEventListener('click', () => {
-                    this.onTargetHit(target);
-                });
 
                 this.targets.push(target);
                 this.el.sceneEl.appendChild(target);
