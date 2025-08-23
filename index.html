@@ -109,7 +109,7 @@
             // Crea una nueva diana.
             createTarget: function() {
                 const target = document.createElement('a-entity');
-                target.setAttribute('geometry', 'primitive: sphere; radius: 0.25');
+                target.setAttribute('geometry', 'primitive: sphere; radius: 0.35');
                 target.setAttribute('material', 'color: red');
                 target.setAttribute('position', {x: (Math.random() - 0.5) * 4, y: 0.5, z: -20});
                 target.setAttribute('class', 'target clickable'); // Añadimos 'clickable' para el raycaster.
@@ -250,7 +250,7 @@
                     // Se ha aumentado el impulso inicial en el eje Y para una parábola más alta.
                     y: this.initialPos.y + (this.elapsedTime * this.data.speed * 5.0) - (0.5 * 0.98 * this.elapsedTime * this.elapsedTime),
                     // Se ha reducido la velocidad en el eje Z para que caigan más cerca.
-                    z: this.initialPos.z + (this.elapsedTime * this.data.speed * 0.5)
+                    z: this.initialPos.z + (this.elapsedTime * this.data.speed * 0.3)
                 };
                 this.el.setAttribute('position', newPos);
             }
