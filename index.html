@@ -2,7 +2,8 @@
   WebXR Game: Shooter de Dianas con Sonido
   
   Esta versión corrige el problema de interacción con el botón de "Empezar"
-  y los disparos. La lógica ahora es más robusta y fiable.
+  y los disparos. La lógica ahora es más robusta y fiable, especialmente en
+  dispositivos móviles y de realidad virtual.
   
   Características:
   - Efectos de sonido para disparos e impactos.
@@ -18,12 +19,13 @@
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
     <!--
-      Componente 'score-manager':
+      Componente 'game-logic':
       Maneja el estado del juego, la puntuación, el contador de fallos y el fin del juego.
       También se encarga de crear, eliminar y gestionar la interacción con las dianas.
+      Esta es la nueva lógica central del juego.
     -->
     <script>
-        AFRAME.registerComponent('score-manager', {
+        AFRAME.registerComponent('game-logic', {
             schema: {
                 targetSpeed: {type: 'number', default: 1}
             },
@@ -39,11 +41,12 @@
                 this.createMissedCounter();
                 this.createStartButton();
                 
-                // Escuchamos el evento de clic en toda la escena para reproducir el sonido de disparo.
+                // Escuchamos el evento de clic en la escena para reproducir el sonido de disparo.
+                // Esto se hace por separado para evitar conflictos con el manejo de clics del botón/diana.
                 this.el.sceneEl.addEventListener('click', this.playShotSound.bind(this));
             },
 
-            // Reproduce el sonido de disparo al hacer clic/tocar en cualquier parte.
+            // Reproduce el sonido de disparo.
             playShotSound: function() {
                 this.el.sceneEl.querySelector('[camera]').components.sound.playSound();
             },
@@ -63,7 +66,7 @@
                 });
                 button.setAttribute('class', 'clickable'); // Añadimos una clase para el raycaster.
                 
-                // Añado el oyente de evento de clic directamente al botón.
+                // Añadimos el oyente de evento de clic directamente al botón para mayor fiabilidad.
                 button.addEventListener('click', () => {
                     this.startGame();
                 });
@@ -101,7 +104,7 @@
                 target.setAttribute('target-movement', 'speed: ' + this.data.targetSpeed);
                 target.setAttribute('sound', 'src: #hit-sound; on: target-hit;');
 
-                // Añado un oyente de evento de clic directamente a la diana.
+                // Añadimos un oyente de evento de clic directamente a la diana.
                 target.addEventListener('click', () => {
                     this.onTargetHit(target);
                 });
@@ -240,7 +243,7 @@
     </script>
 </head>
 <body>
-    <a-scene score-manager>
+    <a-scene game-logic>
         <!-- Bloque de recursos. -->
         <a-assets>
             <audio id="shot-sound" src="https://cdn.jsdelivr.net/gh/aframevr/aframe/examples/showcase/audio/gun.mp3"></audio>
@@ -264,4 +267,3 @@
     </a-scene>
 </body>
 </html>
-
