@@ -1,37 +1,38 @@
 <!-- 
-  WebXR Game: Shooter de Dianas Mejorado
+  WebXR Game: Shooter de Dianas con Sonido
   
-  Este código mejora la versión anterior con:
-  - Un entorno más atractivo.
-  - Efectos visuales al golpear una diana.
-  - Un contador de puntuación más claro.
-  - Un rayo para simular el disparo.
+  Esta versión incluye:
+  - Efectos de sonido para disparos e impactos.
+  - Lógica para detectar una doble pulsación en dispositivos móviles (Android, etc.)
+    y disparar.
+  - El mismo código funciona para clics de ratón y gatillos de VR.
+  - Un entorno más atractivo, contador de puntuación y un rayo para simular el disparo.
 -->
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>WebXR Shooter</title>
-    <!-- Se usa un nuevo enlace estable para A-Frame. -->
+    <!-- Se usa un enlace estable para A-Frame. -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
     <!--
-      Componente de Puntuación.
-      Maneja la lógica del juego: crear dianas, actualizar la puntuación y verificar impactos.
+      Componente 'score-manager':
+      Maneja el estado del juego: puntuación, contador de fallos, y fin del juego.
+      También se encarga de crear y eliminar las dianas.
     -->
     <script>
         AFRAME.registerComponent('score-manager', {
             schema: {
-                targetSpeed: {type: 'number', default: 1} // Velocidad del movimiento de la diana.
+                targetSpeed: {type: 'number', default: 1}
             },
             init: function() {
                 this.score = 0;
                 this.targets = [];
                 this.missedCount = 0;
-                this.maxMissed = 5; // El juego termina al fallar 5 dianas.
+                this.maxMissed = 5;
                 this.isGameOver = false;
 
-                // Creamos los elementos de la interfaz.
                 this.createScoreboard();
                 this.createMissedCounter();
                 this.createStartButton();
@@ -50,17 +51,15 @@
                     color: 'white',
                     width: 3
                 });
-                button.setAttribute('class', 'clickable'); // Añadimos una clase para el raycaster.
+                button.setAttribute('class', 'clickable');
                 this.el.sceneEl.appendChild(button);
 
-                // Evento para empezar el juego al hacer clic.
                 button.addEventListener('click', () => {
                     this.startGame();
                 });
             },
 
             startGame: function() {
-                // Ocultamos el botón de inicio.
                 document.getElementById('startButton').setAttribute('visible', 'false');
                 this.isGameOver = false;
                 this.score = 0;
@@ -68,14 +67,13 @@
                 this.updateScoreboard();
                 this.updateMissedCounter();
 
-                // Empezamos a generar dianas.
                 this.intervalId = setInterval(() => {
                     if (!this.isGameOver) {
                         this.createTarget();
                     } else {
                         clearInterval(this.intervalId);
                     }
-                }, 2000); // Generamos una diana cada 2 segundos.
+                }, 2000);
             },
 
             // Crea una nueva diana.
@@ -84,11 +82,22 @@
                 target.setAttribute('geometry', 'primitive: sphere; radius: 0.25');
                 target.setAttribute('material', 'color: red');
                 target.setAttribute('position', {x: (Math.random() - 0.5) * 4, y: 0.5, z: -20});
-                target.setAttribute('class', 'target clickable'); // Marcamos la diana como "target" y "clickable".
+                target.setAttribute('class', 'target');
                 target.setAttribute('animation-mixer', '');
                 target.setAttribute('target-movement', 'speed: ' + this.data.targetSpeed);
+                target.setAttribute('sound', 'src: #hit-sound; on: target-hit;');
                 this.targets.push(target);
                 this.el.sceneEl.appendChild(target);
+            },
+
+            // Actualiza la puntuación en la pantalla.
+            updateScoreboard: function() {
+                document.getElementById('scoreboard').setAttribute('text', 'value', 'Puntuación: ' + this.score);
+            },
+
+            // Actualiza el contador de fallos.
+            updateMissedCounter: function() {
+                document.getElementById('missedCounter').setAttribute('text', 'value', 'Fallos: ' + this.missedCount + ' / ' + this.maxMissed);
             },
 
             // Crea el marcador de puntuación.
@@ -118,37 +127,24 @@
                 this.el.sceneEl.appendChild(counter);
             },
 
-            // Actualiza la puntuación en la pantalla.
-            updateScoreboard: function() {
-                document.getElementById('scoreboard').setAttribute('text', 'value', 'Puntuación: ' + this.score);
-            },
-
-            // Actualiza el contador de fallos.
-            updateMissedCounter: function() {
-                document.getElementById('missedCounter').setAttribute('text', 'value', 'Fallos: ' + this.missedCount + ' / ' + this.maxMissed);
-            },
-
-            // Detecta si una diana ha sido impactada.
-            checkHit: function(evt) {
+            // Método público para gestionar un impacto en la diana.
+            onTargetHit: function(targetEl) {
                 if (this.isGameOver) return;
                 
-                const targetEl = evt.detail.intersection.object.el;
+                // Reproduce el sonido de impacto.
+                targetEl.emit('target-hit');
 
-                if (targetEl.getAttribute('class').includes('target')) {
-                    // Animación al impactar la diana.
-                    targetEl.setAttribute('animation__scale', {
-                        property: 'scale',
-                        to: '0 0 0',
-                        dur: 200
-                    });
+                targetEl.setAttribute('animation__scale', {
+                    property: 'scale',
+                    to: '0 0 0',
+                    dur: 200
+                });
 
-                    // Eliminamos la diana y actualizamos la puntuación.
-                    setTimeout(() => {
-                        targetEl.parentNode.removeChild(targetEl);
-                    }, 200);
-                    this.score += 100;
-                    this.updateScoreboard();
-                }
+                setTimeout(() => {
+                    targetEl.parentNode.removeChild(targetEl);
+                }, 200);
+                this.score += 100;
+                this.updateScoreboard();
             },
 
             tick: function() {
@@ -158,7 +154,6 @@
                 this.targets.forEach(target => {
                     const pos = target.getAttribute('position');
                     if (pos.z > 2) {
-                        // La diana se ha pasado.
                         this.missedCount++;
                         this.updateMissedCounter();
                         target.parentNode.removeChild(target);
@@ -167,7 +162,6 @@
                         }
                     }
                 });
-                // Filtramos las dianas que ya se han eliminado.
                 this.targets = this.targets.filter(target => target.parentNode);
             },
 
@@ -184,7 +178,6 @@
                 gameOverText.setAttribute('position', '0 1.5 -3');
                 this.el.sceneEl.appendChild(gameOverText);
 
-                // Muestra un botón para volver a empezar.
                 setTimeout(() => {
                     const restartButton = document.createElement('a-entity');
                     restartButton.setAttribute('geometry', 'primitive: plane; width: 1; height: 0.5');
@@ -200,13 +193,59 @@
                     this.el.sceneEl.appendChild(restartButton);
 
                     restartButton.addEventListener('click', () => {
-                        location.reload(); // Recarga la página para empezar de nuevo.
+                        location.reload();
                     });
                 }, 2000);
             }
         });
 
-        // Componente para el movimiento parabólico de las dianas.
+        // Componente 'shooter-controller':
+        // Maneja la lógica de disparo (clic de ratón, gatillo de VR o doble pulsación en móvil).
+        AFRAME.registerComponent('shooter-controller', {
+            schema: {
+                doubleTapTime: {type: 'number', default: 300} // Milisegundos para considerar un doble toque.
+            },
+            init: function() {
+                this.lastTap = 0;
+                this.el.sceneEl.addEventListener('touchstart', this.handleTap.bind(this));
+                this.el.sceneEl.addEventListener('mousedown', this.handleTap.bind(this));
+            },
+            
+            handleTap: function(evt) {
+                const currentTime = Date.now();
+                const tapDifference = currentTime - this.lastTap;
+
+                if (tapDifference < this.data.doubleTapTime) {
+                    // Doble pulsación detectada en móvil o doble clic en ratón.
+                    this.fireShot(evt);
+                    this.lastTap = 0; // Reiniciamos el tiempo para evitar triples toques.
+                } else {
+                    // Primer toque.
+                    this.lastTap = currentTime;
+                }
+            },
+
+            // Dispara y verifica si se ha golpeado una diana.
+            fireShot: function(evt) {
+                // Reproduce el sonido de disparo.
+                this.el.sceneEl.querySelector('[camera]').components.sound.playSound();
+
+                const raycaster = this.el.components.raycaster;
+                if (!raycaster || !raycaster.intersection) {
+                    return; // No hay colisión, no hacemos nada.
+                }
+
+                const targetEl = raycaster.intersection.object.el;
+                if (targetEl && targetEl.getAttribute('class') === 'target') {
+                    // Si se ha golpeado una diana, llamamos al 'score-manager' para que lo procese.
+                    const scoreManager = this.el.sceneEl.components['score-manager'];
+                    scoreManager.onTargetHit(targetEl);
+                }
+            }
+        });
+
+        // Componente 'target-movement':
+        // Mueve la diana en una trayectoria parabólica.
         AFRAME.registerComponent('target-movement', {
             schema: {
                 speed: {type: 'number', default: 1}
@@ -214,8 +253,6 @@
             init: function() {
                 this.initialPos = this.el.getAttribute('position').clone();
                 this.elapsedTime = 0;
-                this.velocity = new THREE.Vector3(0, 0, this.data.speed);
-                this.el.object3D.rotation.x = -90 * Math.PI / 180;
             },
             tick: function(time, deltaTime) {
                 this.elapsedTime += deltaTime / 1000;
@@ -231,12 +268,21 @@
 </head>
 <body>
     <a-scene score-manager>
-        <!-- Cámara y controlador del jugador. -->
+        <!-- Bloque de recursos. -->
+        <a-assets>
+            <audio id="shot-sound" src="https://cdn.jsdelivr.net/gh/aframevr/aframe/examples/showcase/audio/gun.mp3"></audio>
+            <audio id="hit-sound" src="https://cdn.jsdelivr.net/gh/aframevr/aframe/examples/showcase/audio/click.mp3"></audio>
+        </a-assets>
+
+        <!-- Cámara del jugador. -->
         <a-entity id="rig" movement-controls position="0 1.6 0">
-            <a-entity camera look-controls></a-entity>
+            <!-- Se añade el componente de sonido a la cámara. -->
+            <a-entity camera look-controls sound="src: #shot-sound; volume: 0.5;"></a-entity>
             
             <!-- Simulación del "pistola" del controlador. -->
-            <a-entity laser-controls="hand: right" raycaster="objects: .clickable; far: 100;" line="color: blue; opacity: 0.5"></a-entity>
+            <a-entity laser-controls="hand: right" raycaster="objects: .target; far: 100;" line="color: blue; opacity: 0.5" shooter-controller>
+                <a-entity cursor="rayOrigin: mouse" raycaster="objects: .target; far: 100;"></a-entity>
+            </a-entity>
         </a-entity>
         
         <!-- Entorno. -->
